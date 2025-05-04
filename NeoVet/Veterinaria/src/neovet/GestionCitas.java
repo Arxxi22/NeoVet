@@ -221,3 +221,4 @@ public class GestionCitas extends Application {
         launch(args);
     }
 }
+
