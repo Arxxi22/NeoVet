@@ -12,6 +12,9 @@ import javafx.scene.paint.Color;
 import javafx.scene.text.Font;
 import javafx.scene.text.FontWeight;
 import javafx.stage.Stage;
+import javafx.scene.control.Alert;
+import javafx.scene.control.Alert.AlertType;
+import java.util.HashMap;
 
 public class Registro extends Application {
     // Definir el color azul específico de NEOVET
@@ -22,6 +25,12 @@ public class Registro extends Application {
         (int)(NEOVET_BLUE.getRed() * 255),
         (int)(NEOVET_BLUE.getGreen() * 255),
         (int)(NEOVET_BLUE.getBlue() * 255));
+    
+    // Mapas para almacenar todos los controles de los formularios
+    private final HashMap<String, Control> datosMascotaControls = new HashMap<>();
+    private final HashMap<String, Control> datosMedicosControls = new HashMap<>();
+    private final HashMap<String, Control> datosDuenoControls = new HashMap<>();
+    private final HashMap<String, Control> datosCitaControls = new HashMap<>();
     
     @Override
     public void start(Stage primaryStage) {
@@ -71,9 +80,9 @@ public class Registro extends Application {
         // Agregar el TabPane al contenedor principal
         mainContainer.getChildren().add(tabPane);
         
-        // Crear los botones de acción
-        Button btnGuardar = new Button("Guardar");
-        btnGuardar.setStyle(
+        // Crear botón para avanzar entre pestañas y botón final para guardar
+        Button btnSiguiente = new Button("Siguiente");
+        btnSiguiente.setStyle(
             "-fx-background-color: " + NEOVET_BLUE_HEX + ";" +
             "-fx-text-fill: white;" +
             "-fx-background-radius: 25px;" +
@@ -81,10 +90,10 @@ public class Registro extends Application {
             "-fx-font-weight: bold;" +
             "-fx-font-size: 14px;"
         );
-        btnGuardar.setPrefSize(150, 40);
+        btnSiguiente.setPrefSize(150, 40);
         
-        Button btnCancelar = new Button("Salir");
-        btnCancelar.setStyle(
+        Button btnAnterior = new Button("Anterior");
+        btnAnterior.setStyle(
             "-fx-background-color: white;" +
             "-fx-text-fill: " + NEOVET_BLUE_HEX + ";" +
             "-fx-border-color: " + NEOVET_BLUE_HEX + ";" +
@@ -95,16 +104,88 @@ public class Registro extends Application {
             "-fx-font-weight: bold;" +
             "-fx-font-size: 14px;"
         );
-        btnCancelar.setPrefSize(150, 40);
-        btnCancelar.setOnAction(e -> System.exit(0));
+        btnAnterior.setPrefSize(150, 40);
+        
+        Button btnGuardar = new Button("Guardar Registro");
+        btnGuardar.setStyle(
+            "-fx-background-color: green;" +
+            "-fx-text-fill: white;" +
+            "-fx-background-radius: 25px;" +
+            "-fx-font-family: 'Arial';" +
+            "-fx-font-weight: bold;" +
+            "-fx-font-size: 14px;"
+        );
+        btnGuardar.setPrefSize(180, 40);
+        btnGuardar.setVisible(false); // Inicialmente oculto
+        
+        Button btnSalir = new Button("Salir");
+        btnSalir.setStyle(
+            "-fx-background-color: white;" +
+            "-fx-text-fill: red;" +
+            "-fx-border-color: red;" +
+            "-fx-border-width: 2px;" +
+            "-fx-border-radius: 25px;" +
+            "-fx-background-radius: 25px;" +
+            "-fx-font-family: 'Arial';" +
+            "-fx-font-weight: bold;" +
+            "-fx-font-size: 14px;"
+        );
+        btnSalir.setPrefSize(150, 40);
+        btnSalir.setOnAction(e -> System.exit(0));
         
         // Crear un contenedor para los botones
-        HBox botonesContainer = new HBox(20, btnGuardar, btnCancelar);
+        HBox botonesContainer = new HBox(20, btnAnterior, btnSiguiente, btnGuardar, btnSalir);
         botonesContainer.setAlignment(Pos.CENTER);
         botonesContainer.setPadding(new Insets(20, 0, 20, 0));
         
         // Agregar el contenedor de botones al contenedor principal
         mainContainer.getChildren().add(botonesContainer);
+        
+        // Lógica para navegar entre pestañas
+        btnAnterior.setDisable(true); // Inicialmente deshabilitado
+        
+        // Manejar navegación de pestañas
+        btnSiguiente.setOnAction(e -> {
+            int currentIndex = tabPane.getSelectionModel().getSelectedIndex();
+            if (currentIndex < tabPane.getTabs().size() - 1) {
+                tabPane.getSelectionModel().select(currentIndex + 1);
+                btnAnterior.setDisable(false);
+                
+                // Si estamos en la última pestaña, cambiar a botón de guardar
+                if (currentIndex + 1 == tabPane.getTabs().size() - 1) {
+                    btnSiguiente.setVisible(false);
+                    btnGuardar.setVisible(true);
+                }
+            }
+        });
+        
+        btnAnterior.setOnAction(e -> {
+            int currentIndex = tabPane.getSelectionModel().getSelectedIndex();
+            if (currentIndex > 0) {
+                tabPane.getSelectionModel().select(currentIndex - 1);
+                btnSiguiente.setVisible(true);
+                btnGuardar.setVisible(false);
+                
+                if (currentIndex - 1 == 0) {
+                    btnAnterior.setDisable(true);
+                }
+            }
+        });
+        
+        // Actualizar botones cuando se cambia de pestaña manualmente
+        tabPane.getSelectionModel().selectedIndexProperty().addListener((observable, oldValue, newValue) -> {
+            btnAnterior.setDisable(newValue.intValue() == 0);
+            if (newValue.intValue() == tabPane.getTabs().size() - 1) {
+                btnSiguiente.setVisible(false);
+                btnGuardar.setVisible(true);
+            } else {
+                btnSiguiente.setVisible(true);
+                btnGuardar.setVisible(false);
+            }
+        });
+        
+        // Acción para guardar todos los datos
+        btnGuardar.setOnAction(e -> guardarTodosLosDatos());
         
         // Configurar la escena
         Scene scene = new Scene(mainContainer, 800, 650);
@@ -139,16 +220,19 @@ public class Registro extends Application {
         Label lblNombre = new Label("Nombre de la mascota:");
         TextField txtNombre = new TextField();
         txtNombre.setPromptText("Ej: Max");
+        datosMascotaControls.put("nombre", txtNombre);
         
         // Campo para especificar otra especie
         TextField txtOtraEspecie = new TextField();
         txtOtraEspecie.setPromptText("Especifique la especie");
         txtOtraEspecie.setVisible(false); // Inicialmente oculto
+        datosMascotaControls.put("otraEspecie", txtOtraEspecie);
         
         Label lblEspecie = new Label("Especie:");
         ComboBox<String> cmbEspecie = new ComboBox<>();
         cmbEspecie.getItems().addAll("Perro", "Gato", "Ave", "Conejo", "Otro");
         cmbEspecie.setPromptText("Seleccione especie");
+        datosMascotaControls.put("especie", cmbEspecie);
         
         // Mostrar u ocultar el campo de texto para otra especie según la selección
         cmbEspecie.setOnAction(e -> {
@@ -163,15 +247,16 @@ public class Registro extends Application {
         Label lblRaza = new Label("Raza:");
         TextField txtRaza = new TextField();
         txtRaza.setPromptText("Ej: Labrador, Siamés");
+        datosMascotaControls.put("raza", txtRaza);
         
         Label lblFechaNacimiento = new Label("Fecha de nacimiento:");
         DatePicker dateFechaNacimiento = new DatePicker();
+        datosMascotaControls.put("fechaNacimiento", dateFechaNacimiento);
         
         Label lblEdad = new Label("Edad:");
         TextField txtEdad = new TextField();
         txtEdad.setPromptText("Ej: 3 años");
-        // Ahora el campo es editable
-        
+        datosMascotaControls.put("edad", txtEdad);
         
         Label lblSexo = new Label("Sexo:");
         HBox sexoContainer = new HBox(15);
@@ -181,19 +266,24 @@ public class Registro extends Application {
         rbMacho.setToggleGroup(sexoGroup);
         rbHembra.setToggleGroup(sexoGroup);
         sexoContainer.getChildren().addAll(rbMacho, rbHembra);
+        datosMascotaControls.put("sexoMacho", rbMacho);
+        datosMascotaControls.put("sexoHembra", rbHembra);
         
         Label lblColor = new Label("Color:");
         TextField txtColor = new TextField();
         txtColor.setPromptText("Ej: Negro y café");
+        datosMascotaControls.put("color", txtColor);
         
         Label lblPeso = new Label("Peso (kg):");
         TextField txtPeso = new TextField();
         txtPeso.setPromptText("Ej: 12.5");
+        datosMascotaControls.put("peso", txtPeso);
         
         Label lblTamano = new Label("Tamaño:");
         ComboBox<String> cmbTamano = new ComboBox<>();
         cmbTamano.getItems().addAll("Pequeño", "Mediano", "Grande");
         cmbTamano.setPromptText("Seleccione tamaño");
+        datosMascotaControls.put("tamano", cmbTamano);
         
         // Añadir todos los campos al grid
         int row = 0;
@@ -247,25 +337,31 @@ public class Registro extends Application {
         ComboBox<String> cmbTipoSangre = new ComboBox<>();
         cmbTipoSangre.getItems().addAll("DEA 1.1+", "DEA 1.1-", "DEA 1.2+", "DEA 1.2-", "Tipo A", "Tipo B", "Tipo AB");
         cmbTipoSangre.setPromptText("Seleccione tipo de sangre");
+        datosMedicosControls.put("tipoSangre", cmbTipoSangre);
         
         Label lblAlergias = new Label("Alergias:");
         TextArea txtAlergias = new TextArea();
         txtAlergias.setPromptText("Ej: Penicilina");
         txtAlergias.setPrefRowCount(3);
+        datosMedicosControls.put("alergias", txtAlergias);
         
         Label lblEnfermedades = new Label("Enfermedades crónicas:");
         TextField txtEnfermedades = new TextField();
         txtEnfermedades.setPromptText("Ej: Diabetes");
+        datosMedicosControls.put("enfermedades", txtEnfermedades);
         
         Label lblVacunas = new Label("Vacunas al día:");
         CheckBox chkVacunas = new CheckBox("Sí");
+        datosMedicosControls.put("vacunas", chkVacunas);
         
         Label lblUltimaVisita = new Label("Última visita:");
         DatePicker dateUltimaVisita = new DatePicker();
+        datosMedicosControls.put("ultimaVisita", dateUltimaVisita);
         
         Label lblMicrochip = new Label("Microchip:");
         TextField txtMicrochip = new TextField();
         txtMicrochip.setPromptText("Ej: 123456789");
+        datosMedicosControls.put("microchip", txtMicrochip);
         
         // Añadir todos los campos al grid
         int row = 0;
@@ -305,23 +401,28 @@ public class Registro extends Application {
         Label lblNombreDueno = new Label("Nombre del dueño:");
         TextField txtNombreDueno = new TextField();
         txtNombreDueno.setPromptText("Ej: Maria Gonzalez");
+        datosDuenoControls.put("nombreDueno", txtNombreDueno);
         
         Label lblTelefono = new Label("Teléfono:");
         TextField txtTelefono = new TextField();
         txtTelefono.setPromptText("Ej: 312 2615381");
+        datosDuenoControls.put("telefono", txtTelefono);
         
         Label lblEmail = new Label("Correo electrónico:");
         TextField txtEmail = new TextField();
         txtEmail.setPromptText("Ej: ejemplo@example.com");
+        datosDuenoControls.put("email", txtEmail);
         
         Label lblDireccion = new Label("Dirección:");
         TextArea txtDireccion = new TextArea();
         txtDireccion.setPromptText("Ej: Calle Falsa 123");
         txtDireccion.setPrefRowCount(3);
+        datosDuenoControls.put("direccion", txtDireccion);
         
         Label lblRFC = new Label("RFC (para facturación):");
         TextField txtRFC = new TextField();
         txtRFC.setPromptText("Ej: GOMJ800101");
+        datosDuenoControls.put("rfc", txtRFC);
         
         // Añadir todos los campos al grid
         int row = 0;
@@ -359,27 +460,31 @@ public class Registro extends Application {
         ComboBox<String> cmbMotivo = new ComboBox<>();
         cmbMotivo.getItems().addAll("Urgencia", "Control", "Cirugía", "Vacunación", "Desparasitación");
         cmbMotivo.setPromptText("Seleccione motivo");
+        datosCitaControls.put("motivo", cmbMotivo);
         
-        // NUEVO: Estado de la cita
         Label lblEstadoCita = new Label("Estado de la cita:");
         ComboBox<String> cmbEstadoCita = new ComboBox<>();
         cmbEstadoCita.getItems().addAll("Por tener", "En proceso", "Terminada", "Cancelada");
         cmbEstadoCita.setPromptText("Seleccione estado");
         cmbEstadoCita.setValue("Por tener"); // Valor por defecto
+        datosCitaControls.put("estadoCita", cmbEstadoCita);
         
         Label lblSintomas = new Label("Síntomas:");
         TextArea txtSintomas = new TextArea();
         txtSintomas.setPromptText("Ej: Vómito, diarrea");
         txtSintomas.setPrefRowCount(3);
+        datosCitaControls.put("sintomas", txtSintomas);
         
         Label lblMedicamentos = new Label("Medicamentos actuales:");
         TextField txtMedicamentos = new TextField();
         txtMedicamentos.setPromptText("Ej: Omeprazol");
+        datosCitaControls.put("medicamentos", txtMedicamentos);
         
         Label lblVeterinario = new Label("Veterinario asignado:");
         ComboBox<String> cmbVeterinario = new ComboBox<>();
         cmbVeterinario.getItems().addAll("Dr. Pérez", "Dra. González", "Dr. Rodríguez");
         cmbVeterinario.setPromptText("Seleccione veterinario");
+        datosCitaControls.put("veterinario", cmbVeterinario);
         
         Label lblFechaHora = new Label("Fecha y hora de la cita:");
         HBox fechaHoraContainer = new HBox(10);
@@ -392,24 +497,25 @@ public class Registro extends Application {
         );
         cmbHoraCita.setPromptText("Hora");
         fechaHoraContainer.getChildren().addAll(dateFechaCita, cmbHoraCita);
+        datosCitaControls.put("fechaCita", dateFechaCita);
+        datosCitaControls.put("horaCita", cmbHoraCita);
         
-        // NUEVO: Valor del servicio
         Label lblValorServicio = new Label("Valor del servicio ($):");
         TextField txtValorServicio = new TextField();
         txtValorServicio.setPromptText("Ej: 500.00");
+        datosCitaControls.put("valorServicio", txtValorServicio);
         
-        // NUEVO: Descripción del servicio
         Label lblDescripcionServicio = new Label("Descripción del servicio:");
         TextArea txtDescripcionServicio = new TextArea();
         txtDescripcionServicio.setPromptText("Ej: Consulta general con análisis de sangre");
         txtDescripcionServicio.setPrefRowCount(3);
+        datosCitaControls.put("descripcionServicio", txtDescripcionServicio);
         
         // Añadir todos los campos al grid
         int row = 0;
         grid.add(lblMotivo, 0, row);
         grid.add(cmbMotivo, 1, row++);
         
-        // Añadir el nuevo campo de estado de cita
         grid.add(lblEstadoCita, 0, row);
         grid.add(cmbEstadoCita, 1, row++);
         
@@ -425,11 +531,9 @@ public class Registro extends Application {
         grid.add(lblFechaHora, 0, row);
         grid.add(fechaHoraContainer, 1, row++);
         
-        // Añadir el campo de valor del servicio
         grid.add(lblValorServicio, 0, row);
         grid.add(txtValorServicio, 1, row++);
         
-        // Añadir el campo de descripción del servicio
         grid.add(lblDescripcionServicio, 0, row);
         grid.add(txtDescripcionServicio, 1, row++);
         
@@ -439,6 +543,140 @@ public class Registro extends Application {
         );
         
         return grid;
+    }
+    
+    private void guardarTodosLosDatos() {
+        // Validar al menos algunos campos obligatorios
+        TextField nombreMascota = (TextField) datosMascotaControls.get("nombre");
+        TextField nombreDueno = (TextField) datosDuenoControls.get("nombreDueno");
+        
+        if (nombreMascota.getText().isEmpty() || nombreDueno.getText().isEmpty()) {
+            mostrarAlerta("Error", "Debe completar al menos el nombre de la mascota y del dueño.");
+            return;
+        }
+        
+        // Aquí iría la lógica para guardar todos los datos de los formularios
+        // Por ahora, solo mostramos una alerta de éxito
+        
+        // Construir un resumen de los datos para mostrar
+        StringBuilder resumen = new StringBuilder();
+        resumen.append("DATOS DE LA MASCOTA:\n");
+        resumen.append("Nombre: ").append(nombreMascota.getText()).append("\n");
+        
+        ComboBox<String> especie = (ComboBox<String>) datosMascotaControls.get("especie");
+        if (especie.getValue() != null) {
+            if (especie.getValue().equals("Otro")) {
+                TextField otraEspecie = (TextField) datosMascotaControls.get("otraEspecie");
+                resumen.append("Especie: ").append(otraEspecie.getText()).append("\n");
+            } else {
+                resumen.append("Especie: ").append(especie.getValue()).append("\n");
+            }
+        }
+        
+        // Incluir datos del dueño
+        resumen.append("\nDATOS DEL DUEÑO:\n");
+        resumen.append("Nombre: ").append(nombreDueno.getText()).append("\n");
+        
+        TextField telefono = (TextField) datosDuenoControls.get("telefono");
+        if (!telefono.getText().isEmpty()) {
+            resumen.append("Teléfono: ").append(telefono.getText()).append("\n");
+        }
+        
+        // Incluir datos de la cita
+        DatePicker fechaCita = (DatePicker) datosCitaControls.get("fechaCita");
+        ComboBox<String> horaCita = (ComboBox<String>) datosCitaControls.get("horaCita");
+        
+        if (fechaCita.getValue() != null && horaCita.getValue() != null) {
+            resumen.append("\nCITA PROGRAMADA:\n");
+            resumen.append("Fecha: ").append(fechaCita.getValue()).append("\n");
+            resumen.append("Hora: ").append(horaCita.getValue()).append("\n");
+        }
+        
+        // Mostrar el resumen de datos guardados
+        Alert alerta = new Alert(AlertType.INFORMATION);
+        alerta.setTitle("Registro Guardado");
+        alerta.setHeaderText("El registro se ha guardado correctamente");
+        alerta.setContentText(resumen.toString());
+        alerta.showAndWait();
+        
+        // Aquí iría el código para guardar en base de datos, archivo, etc.
+        System.out.println("Guardando datos en el sistema...");
+        
+        // Limpiar formularios después de guardar
+        limpiarFormularios();
+    }
+    
+    private void limpiarFormularios() {
+        // Limpiar todos los campos de los formularios
+        datosMascotaControls.values().forEach(control -> {
+            if (control instanceof TextField) {
+                ((TextField) control).clear();
+            } else if (control instanceof ComboBox) {
+                ((ComboBox<?>) control).setValue(null);
+            } else if (control instanceof DatePicker) {
+                ((DatePicker) control).setValue(null);
+            } else if (control instanceof TextArea) {
+                ((TextArea) control).clear();
+            } else if (control instanceof CheckBox) {
+                ((CheckBox) control).setSelected(false);
+            } else if (control instanceof RadioButton) {
+                ((RadioButton) control).setSelected(false);
+            }
+        });
+        
+        datosMedicosControls.values().forEach(control -> {
+            if (control instanceof TextField) {
+                ((TextField) control).clear();
+            } else if (control instanceof ComboBox) {
+                ((ComboBox<?>) control).setValue(null);
+            } else if (control instanceof DatePicker) {
+                ((DatePicker) control).setValue(null);
+            } else if (control instanceof TextArea) {
+                ((TextArea) control).clear();
+            } else if (control instanceof CheckBox) {
+                ((CheckBox) control).setSelected(false);
+            }
+        });
+        
+        datosDuenoControls.values().forEach(control -> {
+            if (control instanceof TextField) {
+                ((TextField) control).clear();
+            } else if (control instanceof ComboBox) {
+                ((ComboBox<?>) control).setValue(null);
+            } else if (control instanceof DatePicker) {
+                ((DatePicker) control).setValue(null);
+            } else if (control instanceof TextArea) {
+                ((TextArea) control).clear();
+            }
+        });
+        
+        datosCitaControls.values().forEach(control -> {
+            if (control instanceof TextField) {
+                ((TextField) control).clear();
+            } else if (control instanceof ComboBox) {
+                if (control == datosCitaControls.get("estadoCita")) {
+                    ((ComboBox<String>) control).setValue("Por tener"); // Valor por defecto
+                } else {
+                    ((ComboBox<?>) control).setValue(null);
+                }
+            } else if (control instanceof DatePicker) {
+                ((DatePicker) control).setValue(null);
+            } else if (control instanceof TextArea) {
+                ((TextArea) control).clear();
+            }
+        });
+        
+        // Volver a la primera pestaña
+        TabPane tabPane = (TabPane) ((VBox) datosMascotaControls.get("nombre").getParent().getParent().getParent()).getChildren().get(1);
+        tabPane.getSelectionModel().select(0);
+    }
+    
+    private void mostrarAlerta(String titulo, String mensaje) {
+        Alert alerta = new Alert(AlertType.WARNING);
+        alerta.setTitle(titulo);
+        alerta.setHeaderText(null);
+        alerta.setContentText(mensaje);
+        alerta.showAndWait();
     }
     
     public static void main(String[] args) {
